@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subir PDF</title>
+</head>
+<body>
+    <h1>Subir un archivo PDF</h1>
+    <form action="tipo.php" method="POST" enctype="multipart/form-data">
+        <input type="file" name="pdfFiles[]" accept="application/pdf" multiple required>
+        <button type="submit">Subir PDFs (máx. 3 MB c/u)</button>
+    </form>
+</body>
+</html>
