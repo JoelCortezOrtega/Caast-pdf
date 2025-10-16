@@ -1,32 +1,36 @@
 <?php
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    outputAndExit(["⚠️ Método no permitido. Usa POST para subir archivos."]);
+    outputAndExit(["error" => ["⚠️ Método no permitido. Usa POST para subir archivos."]]);
 }
 
 if (!isset($_FILES['pdfFiles']) || !is_array($_FILES['pdfFiles']['error']) || count($_FILES['pdfFiles']['error']) === 0) {
-    outputAndExit(["⚠️ No se subieron archivos o hubo un error al subirlos."]);
+    outputAndExit(["error" => ["⚠️ No se subieron archivos o hubo un error al subirlos."]]);
 }
 
 $results = [];
 
 foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
+    $messages = [];
+
     // ✅ Sanitizar nombre del archivo
     $originalName = basename($_FILES['pdfFiles']['name'][$index]);
     $originalName = preg_replace('/[^a-zA-Z0-9_\-.]/', '_', $originalName);
 
     // Verificar errores de subida
     if ($_FILES['pdfFiles']['error'][$index] !== UPLOAD_ERR_OK) {
-        $results[] = "❌ No se pudo subir el archivo: {$originalName}. Error: {$_FILES['pdfFiles']['error'][$index]}";
+        $messages[] = "❌ No se pudo subir el archivo: {$originalName}. Error: {$_FILES['pdfFiles']['error'][$index]}";
+        $results[$originalName] = $messages;
         continue;
     }
 
     // Verificar tamaño (máx. 3MB)
     $maxSize = 3 * 1024 * 1024;
     if ($_FILES['pdfFiles']['size'][$index] > $maxSize) {
-        $results[] = "❌ El archivo {$originalName} excede el tamaño máximo permitido de 3 MB.";
+        $messages[] = "❌ El archivo {$originalName} excede el tamaño máximo permitido de 3 MB.";
+        $results[$originalName] = $messages;
         continue;
     } else {
-        $results[] = "✅ Tamaño del archivo {$originalName} adecuado.";
+        $messages[] = "✅ Tamaño del archivo adecuado.";
     }
 
     // Verificar tipo MIME real
@@ -35,10 +39,11 @@ foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
     finfo_close($finfo);
 
     if (!in_array($mime, ['application/pdf', 'application/x-pdf'])) {
-        $results[] = "❌ El archivo {$originalName} no es un PDF válido. Tipo detectado: {$mime}";
+        $messages[] = "❌ El archivo no es un PDF válido. Tipo detectado: {$mime}";
+        $results[$originalName] = $messages;
         continue;
     } else {
-        $results[] = "✅ El archivo {$originalName} es un PDF válido.";
+        $messages[] = "✅ El archivo es un PDF válido.";
     }
 
     // Usar rutas seguras
@@ -47,31 +52,33 @@ foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
     // Comprobar si está protegido con contraseña
     $pdfinfo = shell_exec("pdfinfo $escapedPath");
     if (strpos($pdfinfo, 'Encrypted: yes') !== false) {
-        $results[] = "❌ El PDF {$originalName} está protegido con contraseña.";
+        $messages[] = "❌ El PDF está protegido con contraseña.";
+        $results[$originalName] = $messages;
         continue;
     } else {
-        $results[] = "✅ El PDF {$originalName} no tiene contraseña.";
+        $messages[] = "✅ El PDF no tiene contraseña.";
     }
 
     // Obtener trailer para validar AcroForm, JS, incrustaciones
     $trailer = shell_exec("mutool show $escapedPath trailer");
 
-    $results[] = (strpos($trailer, '/AcroForm') !== false)
-        ? "❌ El PDF {$originalName} contiene formularios (AcroForm)."
-        : "✅ El PDF {$originalName} no contiene formularios.";
+    $messages[] = (strpos($trailer, '/AcroForm') !== false)
+        ? "❌ Contiene formularios (AcroForm)."
+        : "✅ No contiene formularios.";
 
-    $results[] = (strpos($trailer, '/EmbeddedFiles') !== false || strpos($trailer, '/FileAttachment') !== false)
-        ? "❌ El PDF {$originalName} contiene archivos incrustados."
-        : "✅ El PDF {$originalName} no contiene objetos incrustados.";
+    $messages[] = (strpos($trailer, '/EmbeddedFiles') !== false || strpos($trailer, '/FileAttachment') !== false)
+        ? "❌ Contiene archivos incrustados."
+        : "✅ No contiene objetos incrustados.";
 
-    $results[] = (preg_match('/\/(JavaScript|JS)/', $trailer))
-        ? "❌ El PDF {$originalName} contiene JavaScript."
-        : "✅ El PDF {$originalName} no contiene JavaScript.";
+    $messages[] = (preg_match('/\/(JavaScript|JS)/', $trailer))
+        ? "❌ Contiene JavaScript."
+        : "✅ No contiene JavaScript.";
 
-    // Verificar imágenes: resolución y escala de grises
+    // Verificar imágenes
     $pdfimages = shell_exec("pdfimages -list $escapedPath");
     if (!$pdfimages) {
-        $results[] = "❌ No se pudo analizar imágenes del PDF {$originalName}.";
+        $messages[] = "❌ No se pudo analizar imágenes del PDF.";
+        $results[$originalName] = $messages;
         continue;
     }
 
@@ -95,31 +102,35 @@ foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
             if ($color === 'gray' && $bpc === 8) {
                 $validGray8++;
             } else {
-                $results[] = "❌ Imagen no compatible en {$originalName}: Color: $color | Bits por componente: $bpc";
+                $messages[] = "❌ Imagen no compatible: Color: $color | Bits por componente: $bpc";
             }
         }
     }
 
     if ($totalImages === 0) {
-        $results[] = "⚠️ No se encontraron imágenes en el PDF {$originalName}.";
+        $messages[] = "⚠️ No se encontraron imágenes en el PDF.";
     } else {
-        $results[] = $validDPI
-            ? "✅ Todas las imágenes del PDF {$originalName} cumplen con 300 DPI o más."
-            : "❌ Rechazado: hay imágenes con menos de 300 DPI en {$originalName}.";
+        $messages[] = $validDPI
+            ? "✅ Todas las imágenes cumplen con 300 DPI o más."
+            : "❌ Hay imágenes con menos de 300 DPI.";
 
-        $results[] = ($validGray8 === $totalImages)
-            ? "✅ Todas las imágenes del PDF {$originalName} están en escala de grises a 8 bits ($validGray8 de $totalImages)."
-            : "❌ Solo $validGray8 de $totalImages imágenes en {$originalName} están en escala de grises a 8 bits.";
+        $messages[] = ($validGray8 === $totalImages)
+            ? "✅ Todas las imágenes están en escala de grises a 8 bits ($validGray8 de $totalImages)."
+            : "❌ Solo $validGray8 de $totalImages imágenes están en escala de grises a 8 bits.";
     }
+
+    // Guardar resultados por archivo
+    $results[$originalName] = $messages;
 }
 
-// ✅ Mostrar los resultados como JSON para AJAX
+// ✅ Mostrar los resultados como JSON
 outputAndExit($results);
+
 
 // -------------------
 // Función auxiliar
 function outputAndExit(array $messages) {
     header('Content-Type: application/json');
-    echo json_encode($messages);
+    echo json_encode($messages, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     exit;
 }
