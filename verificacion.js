@@ -1,41 +1,83 @@
 $('#pdfUploadForm').on('submit', function(e) {
-    e.preventDefault(); // Evita el envío normal del formulario
+    e.preventDefault();
 
-    let formData = new FormData(this); // Crea un objeto FormData con el archivo
+    let formData = new FormData(this);
+
+    // Mostrar SweetAlert mientras se procesa
+    Swal.fire({
+        title: 'Procesando...',
+        html: 'Por favor espera mientras se carga el archivo.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
 
     $.ajax({
         url: 'verificacion.php',
         type: 'POST',
         data: formData,
-        processData: false, // Necesario para enviar FormData
-        contentType: false, // Necesario para enviar FormData
-        dataType: 'json',   // Espera respuesta JSON del servidor
+        processData: false,
+        contentType: false,
+        dataType: 'json',
         success: function(response) {
-            const contenedor = $('#resultados');
-            contenedor.empty(); // Limpia resultados anteriores
+            // Cerrar SweetAlert cuando termine
+            Swal.close();
 
-            // Itera por cada archivo analizado
+            if ($.fn.DataTable.isDataTable('#producto_data')) {
+                $('#producto_data').DataTable().clear().destroy();
+            }
+
+            let tableData = [];
+
             $.each(response, function(nombreArchivo, mensajes) {
-                const bloque = $('<div class="archivo"></div>');
-                bloque.append(`<h3>${nombreArchivo}</h3>`);
+                let mensajesUnidos = '<ul>' + mensajes.map(msg => `<li>${msg}</li>`).join('') + '</ul>';
+                tableData.push([nombreArchivo, mensajesUnidos]);
+            });
 
-                const lista = $('<ul></ul>');
-
-                mensajes.forEach(function(msg) {
-                let clase = '';
-                    if (msg.includes('✅')) clase = 'ok';
-                    else if (msg.includes('❌')) clase = 'error';
-                    else if (msg.includes('⚠️')) clase = 'alerta';
-
-                lista.append(`<li class="${clase}">${msg}</li>`);
-                });
-
-                bloque.append(lista);
-                contenedor.append(bloque);
+            $('#producto_data').DataTable({
+                "aProcessing": true,
+                "aServerSide": true,
+                dom: 'frtip',
+                data: tableData,
+                columns: [
+                    { title: "Archivo" },
+                    { title: "Mensaje" }
+                ],
+                "autoWidth": false,
+                "bDestroy": true,
+                "responsive": true,
+                "bInfo": true,
+                "iDisplayLength": 10,
+                "order": [[0, "asc"]],
+                "language": {
+                    "sProcessing":     "Procesando...",
+                    "sLengthMenu":     "Mostrar _MENU_ registros",
+                    "sZeroRecords":    "No se encontraron resultados",
+                    "sEmptyTable":     "Ningún dato disponible en esta tabla",
+                    "sInfo":           "Mostrando un total de _TOTAL_ registros",
+                    "sInfoEmpty":      "Mostrando un total de 0 registros",
+                    "sInfoFiltered":   "(filtrado de un total de _MAX_ registros)",
+                    "sSearch":         "Buscar:",
+                    "oPaginate": {
+                        "sFirst":    "Primero",
+                        "sLast":     "Último",
+                        "sNext":     "Siguiente",
+                        "sPrevious": "Anterior"
+                    },
+                    "oAria": {
+                        "sSortAscending":  ": Activar para ordenar la columna de manera ascendente",
+                        "sSortDescending": ": Activar para ordenar la columna de manera descendente"
+                    }
+                }
             });
         },
         error: function(xhr) {
-            console.error('Error:', xhr.responseText);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Ocurrió un error: ' + xhr.responseText
+            });
         }
     });
 });

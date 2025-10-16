@@ -31,7 +31,10 @@ foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
         continue;
     } else {
         $messages[] = "✅ Tamaño del archivo adecuado.";
+        
     }
+
+    $messages[] = round(($_FILES['pdfFiles']['size'][$index] / 1024),2)." KB";
 
     // Verificar tipo MIME real
     $finfo = finfo_open(FILEINFO_MIME_TYPE);
