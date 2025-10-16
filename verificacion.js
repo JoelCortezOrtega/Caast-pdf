@@ -1,10 +1,10 @@
-$('#pdfForm').on('submit', function(e) {
+$('#pdfUploadForm').on('submit', function(e) {
     e.preventDefault(); // Evita el envío normal del formulario
 
     let formData = new FormData(this); // Crea un objeto FormData con el archivo
 
     $.ajax({
-        url: 'verifaction.php',
+        url: 'verificacion.php',
         type: 'POST',
         data: formData,
         processData: false, // Necesario para enviar FormData

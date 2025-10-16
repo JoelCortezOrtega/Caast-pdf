@@ -30,7 +30,7 @@
                     <h4>Subir un archivo PDF</h4>
                 </div>
                 <div class="card-body">
-                    <form id="pdfUploadForm" action="vericacion.php" method="post" enctype="multipart/form-data">
+                    <form id="pdfUploadForm" action="" method="post" enctype="multipart/form-data">
                         <div class="mb-3">
                             <label for="pdfFiles" class="form-label">Selecciona uno o más archivos PDF:</label>
                             <input class="form-control-file" type="file" id="pdfFiles" name="pdfFiles[]" accept="application/pdf" multiple required>
@@ -64,16 +64,12 @@
 <script src="public/plugins/datatables-buttons/js/buttons.html5.min.js"></script>
 <script src="public/plugins/datatables-buttons/js/buttons.print.min.js"></script>
 <script src="public/plugins/datatables-buttons/js/buttons.colVis.min.js"></script>
-<!--SideBar-->
-<script>
-  $('[data-widget="sidebar-search"]').SidebarSearch('toggle')
-</script>
 <!-- AdminLTE App -->
 <script src="public/dist/js/adminlte.min.js"></script>
 <!-- SweetAlert2 -->
 <script src="public/plugins/sweetalert2/sweetalert2.min.js"></script>
 
 <!--JS Personalizados-->
-<script type="text/javascript" src="../../views/marca_pc/js/crud.js"></script>
+<script type="text/javascript" src="verificacion.js"></script>
 </body>
 </html>
