@@ -1,16 +1,18 @@
 <?php
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    exit("⚠️ Método no permitido. Usa POST para subir archivos.\n");
+    outputAndExit(["⚠️ Método no permitido. Usa POST para subir archivos."]);
 }
 
 if (!isset($_FILES['pdfFiles']) || !is_array($_FILES['pdfFiles']['error']) || count($_FILES['pdfFiles']['error']) === 0) {
-    exit("⚠️ No se subieron archivos o hubo un error al subirlos.\n");
+    outputAndExit(["⚠️ No se subieron archivos o hubo un error al subirlos."]);
 }
 
 $results = [];
 
 foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
-    $originalName = $_FILES['pdfFiles']['name'][$index];
+    // ✅ Sanitizar nombre del archivo
+    $originalName = basename($_FILES['pdfFiles']['name'][$index]);
+    $originalName = preg_replace('/[^a-zA-Z0-9_\-.]/', '_', $originalName);
 
     // Verificar errores de subida
     if ($_FILES['pdfFiles']['error'][$index] !== UPLOAD_ERR_OK) {
@@ -20,14 +22,14 @@ foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
 
     // Verificar tamaño (máx. 3MB)
     $maxSize = 3 * 1024 * 1024;
-    if (filesize($uploadedFile) > $maxSize) {
+    if ($_FILES['pdfFiles']['size'][$index] > $maxSize) {
         $results[] = "❌ El archivo {$originalName} excede el tamaño máximo permitido de 3 MB.";
         continue;
     } else {
         $results[] = "✅ Tamaño del archivo {$originalName} adecuado.";
     }
 
-    // Verificar tipo MIME
+    // Verificar tipo MIME real
     $finfo = finfo_open(FILEINFO_MIME_TYPE);
     $mime = finfo_file($finfo, $uploadedFile);
     finfo_close($finfo);
@@ -111,15 +113,13 @@ foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
     }
 }
 
-// Mostrar los resultados
+// ✅ Mostrar los resultados como JSON para AJAX
 outputAndExit($results);
 
 // -------------------
 // Función auxiliar
 function outputAndExit(array $messages) {
-    foreach ($messages as $msg) {
-        echo $msg . "\n";
-    }
+    header('Content-Type: application/json');
+    echo json_encode($messages);
     exit;
 }
-?>
