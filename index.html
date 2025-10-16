@@ -7,9 +7,9 @@
 </head>
 <body>
     <h1>Subir un archivo PDF</h1>
-    <form action="contenido.php" method="POST" enctype="multipart/form-data">
-        <input type="file" name="pdfFile" accept="application/pdf" required>
-        <button type="submit">Subir PDF</button>
+    <form action="vericacion.php" method="post" enctype="multipart/form-data">
+        <input type="file" name="pdfFiles[]" accept="application/pdf" multiple>
+    <button type="submit">Subir PDF(s)</button>
     </form>
 </body>
 </html>
