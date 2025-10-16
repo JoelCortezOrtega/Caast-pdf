@@ -30,9 +30,46 @@ $('#pdfUploadForm').on('submit', function(e) {
 
             let tableData = [];
 
+            // $.each(response, function(nombreArchivo, data) {
+            //     console.log("Archivo:", nombreArchivo);
+            //     console.log("Resumen:", data.resumen);
+            //     console.log("Detalles:", data.detalles);
+            // });
+            
+            // $.each(response, function(nombreArchivo, mensajes) {
+
+            //     let mensajesUnidos = '<ul>' + mensajes.resumen.map(msg => `<li>${msg}</li>`).join('') + '</ul>';
+                
+            //     let detallesLista = '<ul>';
+            //     for (const [clave, valor] of Object.entries(mensajes.detalles)) {
+            //         detallesLista += `<li><strong>${clave}:</strong> ${valor}</li>`;
+            //     }
+            //     detallesLista += '</ul>';
+
+            //     tableData.push([nombreArchivo, mensajesUnidos, detallesLista, ""]);
+            // });
+
             $.each(response, function(nombreArchivo, mensajes) {
-                let mensajesUnidos = '<ul>' + mensajes.map(msg => `<li>${msg}</li>`).join('') + '</ul>';
-                tableData.push([nombreArchivo, mensajesUnidos]);
+                // Crear la lista de mensajes de resumen (revisión técnica)
+                let mensajesUnidos = '<ul>' + mensajes.resumen.map(msg => `<li>${msg}</li>`).join('') + '</ul>';
+                
+                // Crear el listado de detalles en formato de tabla
+                let detalles = {
+                    "tamaño": mensajes.detalles.tamaño,
+                    "pdf_valido": mensajes.detalles.pdf_valido,
+                    "sin_contraseña": mensajes.detalles.sin_contraseña,
+                    "sin_formularios": mensajes.detalles.sin_formularios,
+                    "sin_javascript": mensajes.detalles.sin_javascript,
+                    "sin_objetos_incrustados": mensajes.detalles.sin_objetos_incrustados,
+                    "imagenes": mensajes.detalles.imagenes,
+                    "imagenes_grayscale": mensajes.detalles.imagenes_grayscale,
+                    "dpi_imagenes": mensajes.detalles.dpi_imagenes
+                };
+
+                let size = detalles.tamaño;
+
+                // Armar el array de datos para la tabla
+                tableData.push([nombreArchivo, size , mensajesUnidos, ""]);
             });
 
             $('#producto_data').DataTable({
@@ -42,7 +79,9 @@ $('#pdfUploadForm').on('submit', function(e) {
                 data: tableData,
                 columns: [
                     { title: "Archivo" },
-                    { title: "Mensaje" }
+                    { title: "Tamaño" },
+                    { title: "Mensaje" },
+                    { title: "Acciones" }
                 ],
                 "autoWidth": false,
                 "bDestroy": true,
@@ -80,4 +119,25 @@ $('#pdfUploadForm').on('submit', function(e) {
             });
         }
     });
-});
+}); 
+
+/* $('#pdfUploadForm').on('submit', function(e) {
+    e.preventDefault(); // Evita el envío normal del formulario
+
+    let formData = new FormData(this); // Crea un objeto FormData con el archivo
+
+    $.ajax({
+        url: 'verificacion.php',
+        type: 'POST',
+        data: formData,
+        processData: false, // Necesario para enviar FormData
+        contentType: false, // Necesario para enviar FormData
+        dataType: 'json',   // Espera respuesta JSON del servidor
+        success: function(response) {
+            console.log('Éxito:', response);
+        },
+        error: function(xhr) {
+            console.error('Error:', xhr.responseText);
+        }
+    });
+}); */

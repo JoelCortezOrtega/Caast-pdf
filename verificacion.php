@@ -123,12 +123,25 @@ foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
     }
 
     // Guardar resultados por archivo
-    $results[$originalName] = $messages;
+    $results[$originalName] = [
+    'resumen' => $messages,
+    'detalles' => [
+        'tamaño' => round($_FILES['pdfFiles']['size'][$index] / 1024, 2) . " KB",
+        'tamaño_valido' => ($_FILES['pdfFiles']['size'][$index] <= $maxSize) ? "✅ Tamaño adecuado." : "❌ Excede el tamaño máximo.",
+        'pdf_valido' => (in_array($mime, ['application/pdf', 'application/x-pdf'])) ? "✅ Es un PDF válido." : "❌ No es un PDF válido.",
+        'sin_contraseña' => (strpos($pdfinfo, 'Encrypted: yes') === false) ? "✅ No tiene contraseña." : "❌ Tiene contraseña.",
+        'sin_formularios' => (strpos($trailer, '/AcroForm') === false) ? "✅ No contiene formularios." : "❌ Contiene formularios.",
+        'sin_objetos_incrustados' => (strpos($trailer, '/EmbeddedFiles') === false && strpos($trailer, '/FileAttachment') === false) ? "✅ No contiene objetos incrustados." : "❌ Contiene objetos incrustados.",
+        'sin_javascript' => (preg_match('/\/(JavaScript|JS)/', $trailer) === 0) ? "✅ No contiene JavaScript." : "❌ Contiene JavaScript.",
+        'imagenes' => $totalImages > 0 ? "✅ Se encontraron imágenes en el PDF." : "⚠️ No se encontraron imágenes.",
+        'dpi_imagenes' => ($totalImages === 0) ? "⚠️ No aplica." : ($validDPI ? "✅ Todas las imágenes cumplen con 300 DPI o más." : "❌ Algunas imágenes tienen menos de 300 DPI."),
+        'imagenes_grayscale' => ($totalImages === 0) ? "⚠️ No aplica." : ($validGray8 === $totalImages ? "✅ Todas las imágenes están en escala de grises a 8 bits." : "❌ Solo $validGray8 de $totalImages imágenes están en escala de grises a 8 bits.")
+    ]];
+
 }
 
 // ✅ Mostrar los resultados como JSON
 outputAndExit($results);
-
 
 // -------------------
 // Función auxiliar
