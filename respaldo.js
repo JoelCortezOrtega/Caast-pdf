@@ -30,6 +30,25 @@ $('#pdfUploadForm').on('submit', function(e) {
 
             let tableData = [];
 
+            // $.each(response, function(nombreArchivo, data) {
+            //     console.log("Archivo:", nombreArchivo);
+            //     console.log("Resumen:", data.resumen);
+            //     console.log("Detalles:", data.detalles);
+            // });
+            
+            // $.each(response, function(nombreArchivo, mensajes) {
+
+            //     let mensajesUnidos = '<ul>' + mensajes.resumen.map(msg => `<li>${msg}</li>`).join('') + '</ul>';
+                
+            //     let detallesLista = '<ul>';
+            //     for (const [clave, valor] of Object.entries(mensajes.detalles)) {
+            //         detallesLista += `<li><strong>${clave}:</strong> ${valor}</li>`;
+            //     }
+            //     detallesLista += '</ul>';
+
+            //     tableData.push([nombreArchivo, mensajesUnidos, detallesLista, ""]);
+            // });
+
             $.each(response, function(nombreArchivo, mensajes) {
                 // Crear la lista de mensajes de resumen (revisión técnica)
                 let mensajesUnidos = '<ul>' + mensajes.resumen.map(msg => `<li>${msg}</li>`).join('') + '</ul>';
@@ -99,5 +118,60 @@ $('#pdfUploadForm').on('submit', function(e) {
                  text: 'Ocurrió un error: ' + xhr.responseText
              });
         }
+/*         error: function(xhr) {
+            let responseText = xhr.responseText;
+
+            // Si detectamos un warning específico de PHP sobre max_file_uploads
+            if (responseText.includes("Maximum number of allowable file uploads has been exceeded")) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Demasiados archivos',
+                    text: '❌ Has intentado subir más archivos de los permitidos por el servidor (PHP). Por favor, sube menos archivos.'
+                });
+                return;
+            }
+
+            // Intentar parsear JSON por si es otro tipo de error controlado
+            try {
+                const json = JSON.parse(responseText);
+                if (json.error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error del servidor',
+                        html: json.error.map(e => `<p>${e}</p>`).join('')
+                    });
+                } else {
+                    throw new Error("Sin mensaje de error en JSON.");
+                }
+            } catch (e) {
+                // Fallback: error genérico
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error inesperado',
+                    text: 'No se pudo procesar la respuesta del servidor.'
+                });
+            }
+        } */
     });
 }); 
+
+/* $('#pdfUploadForm').on('submit', function(e) {
+    e.preventDefault(); // Evita el envío normal del formulario
+
+    let formData = new FormData(this); // Crea un objeto FormData con el archivo
+
+    $.ajax({
+        url: 'verificacion.php',
+        type: 'POST',
+        data: formData,
+        processData: false, // Necesario para enviar FormData
+        contentType: false, // Necesario para enviar FormData
+        dataType: 'json',   // Espera respuesta JSON del servidor
+        success: function(response) {
+            console.log('Éxito:', response);
+        },
+        error: function(xhr) {
+            console.error('Error:', xhr.responseText);
+        }
+    });
+}); */

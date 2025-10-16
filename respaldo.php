@@ -1,4 +1,11 @@
 <?php
+// ✅ Silenciar warnings para evitar que rompan la salida JSON
+error_reporting(E_ALL & ~E_WARNING);
+ini_set('display_errors', 0);
+
+// Definir máximo archivos permitidos (ejemplo, ajusta según tu lógica)
+$maxFiles = 5;
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     outputAndExit(["error" => ["⚠️ Método no permitido. Usa POST para subir archivos."]]);
 }
@@ -162,4 +169,3 @@ function outputAndExit(array $messages) {
     exit;
 }
 ?>
-
