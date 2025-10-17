@@ -13,12 +13,6 @@ if (!isset($_FILES['pdfFiles']) || !is_array($_FILES['pdfFiles']['error']) || co
     ]);
 }
 
-// Verificar el número de archivos cargados
-$totalFiles = count($_FILES['pdfFiles']['error']);
-if ($totalFiles > $maxFiles) {
-    outputAndExit(["error" => ["❌ El número máximo de archivos permitidos es {$maxFiles}. Has intentado cargar {$totalFiles} archivos."]]);
-}
-
 $results = [];
 
 foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
