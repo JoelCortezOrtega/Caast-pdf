@@ -1,3 +1,24 @@
+$(document).ready(function () {
+  const tabla = $('#producto_data').DataTable({
+    //serverSide: false, // 🔥 sin esto, el mensaje de emptyTable no funciona
+    data: [], // 👈 Importante: array vacío para que muestre "emptyTable"
+    columns: [
+      { title: "Archivo" },
+      { title: "Tamaño" },
+      { title: "Mensaje" },
+      { title: "Acciones" }
+    ],
+    language: {
+      emptyTable: "No hay archivos seleccionados."
+    },
+    paging: false,
+    searching: false,
+    info: false
+  });
+});
+
+
+
 $('#pdfUploadForm').on('submit', function(e) {
     e.preventDefault();
 
@@ -115,7 +136,7 @@ $('#pdfUploadForm').on('submit', function(e) {
                 let htmlDetalles = `
                     <div style="text-align: left; font-size: 14px;">
                         <p><strong>Archivo:</strong> ${nombreArchivo}</p>
-                        <p><strong>Resultado:</strong></p>
+                        <p><strong>Resultado</strong></p>
                         <ul>
                             <li><strong>PDF válido:</strong> ${formatBadge(detalles.pdf_valido)}</li>
                             <li><strong>Tamaño ≤ 3 MB:</strong> ${formatBadge(detalles.tamaño)}</li>
@@ -126,6 +147,7 @@ $('#pdfUploadForm').on('submit', function(e) {
                             <li><strong>Escala de grises a 8 bits:</strong> ${formatBadge(detalles.imagenes_grayscale)}</li>
                             <li><strong>Resolución 300 DPI:</strong> ${formatBadge(detalles.dpi_imagenes)}</li>
                         </ul>
+                        <p><strong>Errores</strong></p>
                     </div>
                 `;
 
