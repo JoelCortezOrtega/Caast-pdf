@@ -76,6 +76,14 @@ $('#pdfUploadForm').on('submit', function(e) {
                     >
                         <i class="fas fa-info-circle"></i> Detalles
                     </button>
+                    <button 
+                        class="btn btn-sm btn-info btn btn-danger" 
+                        data-detalles='${JSON.stringify(detalles).replace(/'/g, "&apos;")}' 
+                        data-nombre='${nombreArchivo}'
+                        type="button"
+                    >
+                        <i class="fa fa-times"></i> Eliminar registro
+                    </button>
                 `;
 
                 tableData.push([
