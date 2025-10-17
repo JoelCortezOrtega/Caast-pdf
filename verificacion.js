@@ -21,7 +21,7 @@ $('#pdfUploadForm').on('submit', function(e) {
         dataType: 'json',
         success: function(response) {
             Swal.close();
-
+            // Cerrar SweetAlert cuando termine
             if ($.fn.DataTable.isDataTable('#producto_data')) {
                 $('#producto_data').DataTable().clear().destroy();
             }
@@ -66,6 +66,9 @@ $('#pdfUploadForm').on('submit', function(e) {
             });
 
             let tabla = $('#producto_data').DataTable({
+                aProcessing: true,
+                aServerSide: true,
+                dom: 'frtip',
                 data: tableData,
                 columns: [
                     { title: "Archivo" },
