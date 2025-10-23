@@ -13,6 +13,9 @@ if (!isset($_FILES['pdfFiles']) || !is_array($_FILES['pdfFiles']['error']) || co
     ]);
 }
 
+// Contraseña opcional para PDFs protegidos
+$providedPassword = isset($_POST['pdfPassword']) ? $_POST['pdfPassword'] : '';
+
 $results = [];
 
 foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
@@ -63,6 +66,12 @@ foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
 
     $escapedPath = escapeshellarg($uploadedFile);
 
+
+
+
+
+    
+
     // 🛡️ Detección mejorada de contraseña / encriptación
     $pdfinfo = shell_exec("pdfinfo $escapedPath 2>&1");
     if (preg_match('/Encrypted:\s*yes/i', $pdfinfo)) {
@@ -81,32 +90,37 @@ foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
     $trailer = shell_exec("mutool show $escapedPath trailer");
     $root = shell_exec("mutool show $escapedPath trailer /Root 2>/dev/null");
 
-    // 🧾 Detección extendida de formularios
-    $containsFormularios = (
-        strpos($trailer, '/AcroForm') !== false ||
-        strpos($root, '/AcroForm') !== false
-    );
+    // 🧾 Detección extendida de formularios (versión avanzada)
+    $containsFormularios = false;
 
-    // 🔍 Revisar hasta 5 páginas para detectar anotaciones o widgets
-    $annotsDetected = false;
+    // 1️⃣ Escaneo clásico
+    if (strpos($trailer, '/AcroForm') !== false || strpos($root, '/AcroForm') !== false) {
+        $containsFormularios = true;
+    }
+
+    // 2️⃣ Escaneo página por página (Annots / Widget)
     for ($p = 1; $p <= 5; $p++) {
         $annots = shell_exec("mutool show $escapedPath $p 2>/dev/null | grep -E '/(Annots|Widget)'");
         if ($annots) {
-            $annotsDetected = true;
+            $containsFormularios = true;
             break;
         }
     }
 
-    $containsFormularios = $containsFormularios || $annotsDetected;
+    // 3️⃣ Escaneo global binario (detección avanzada)
+    $pdfRawScan = shell_exec("strings $escapedPath | grep -E '/(AcroForm|NeedAppearances|Subtype /Widget|FT /Btn|FT /Tx|FT /Ch|FT /Sig|XFA)'");
+    if ($pdfRawScan) {
+        $containsFormularios = true;
+    }
 
-    // 🔍 Detección de formularios XFA (Adobe LiveCycle)
-    $containsXFA = (strpos($root, '/XFA') !== false);
-    $containsFormularios = $containsFormularios || $containsXFA;
+    // 4️⃣ Detección específica de XFA (Adobe LiveCycle)
+    $containsXFA = (strpos($pdfRawScan, '/XFA') !== false);
 
+    // ✅ Resultado final
     if ($containsXFA) {
         $messages[] = "❌ Contiene formularios XFA (Adobe LiveCycle).";
     } elseif ($containsFormularios) {
-        $messages[] = "❌ Contiene formularios (AcroForm, anotaciones o widgets).";
+        $messages[] = "❌ Contiene formularios interactivos (campos o checkboxes).";
     } else {
         $messages[] = "✅ No contiene formularios.";
     }
@@ -202,6 +216,7 @@ function outputAndExit(array $messages) {
     exit;
 }
 ?>
+
 
 
 
