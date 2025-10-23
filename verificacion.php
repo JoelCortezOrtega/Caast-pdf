@@ -63,82 +63,91 @@ foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
 
     $escapedPath = escapeshellarg($uploadedFile);
 
-    // Comprobar si está protegido con contraseña
+    // 🛡️ Detección mejorada de contraseña / encriptación
     $pdfinfo = shell_exec("pdfinfo $escapedPath 2>&1");
-    if (strpos($pdfinfo, 'Encrypted: yes') !== false) {
-        $messages[] = "❌ El PDF está protegido con contraseña.";
-        $results[$originalName] = ['resumen' => $messages];
-        continue;
+    if (preg_match('/Encrypted:\s*yes/i', $pdfinfo)) {
+        if (preg_match('/(owner|print:|copy:|change:)/i', $pdfinfo)) {
+            $messages[] = "⚠️ El PDF tiene restricciones (no requiere contraseña para abrir).";
+        } else {
+            $messages[] = "❌ El PDF está protegido con contraseña.";
+            $results[$originalName] = ['resumen' => $messages];
+            continue;
+        }
     } else {
-        $messages[] = "✅ El PDF no tiene contraseña.";
+        $messages[] = "✅ El PDF no tiene contraseña ni restricciones.";
     }
 
-    // Verificar versión del PDF
-    if (preg_match('/PDF version:\s*([0-9.]+)/', $pdfinfo, $m)) {
-        $version = floatval($m[1]);
-        if ($version < 1.4) {
-            $messages[] = "⚠️ Versión PDF antigua ($version). Se recomienda 1.4 o superior.";
-        } else {
-            $messages[] = "✅ Versión PDF compatible ($version).";
+    // 🔍 Obtener trailer y catálogo raíz
+    $trailer = shell_exec("mutool show $escapedPath trailer");
+    $root = shell_exec("mutool show $escapedPath trailer /Root 2>/dev/null");
+
+    // 🧾 Detección extendida de formularios
+    $containsFormularios = (
+        strpos($trailer, '/AcroForm') !== false ||
+        strpos($root, '/AcroForm') !== false
+    );
+
+    // 🔍 Revisar hasta 5 páginas para detectar anotaciones o widgets
+    $annotsDetected = false;
+    for ($p = 1; $p <= 5; $p++) {
+        $annots = shell_exec("mutool show $escapedPath $p 2>/dev/null | grep -E '/(Annots|Widget)'");
+        if ($annots) {
+            $annotsDetected = true;
+            break;
         }
     }
 
-    // Obtener trailer para validar AcroForm, JS, incrustaciones
-    $trailer = shell_exec("mutool show $escapedPath trailer");
+    $containsFormularios = $containsFormularios || $annotsDetected;
 
-    $containsFormularios = (strpos($trailer, '/AcroForm') !== false);
-    $messages[] = $containsFormularios ? "❌ Contiene formularios (AcroForm)." : "✅ No contiene formularios.";
+    // 🔍 Detección de formularios XFA (Adobe LiveCycle)
+    $containsXFA = (strpos($root, '/XFA') !== false);
+    $containsFormularios = $containsFormularios || $containsXFA;
 
+    if ($containsXFA) {
+        $messages[] = "❌ Contiene formularios XFA (Adobe LiveCycle).";
+    } elseif ($containsFormularios) {
+        $messages[] = "❌ Contiene formularios (AcroForm, anotaciones o widgets).";
+    } else {
+        $messages[] = "✅ No contiene formularios.";
+    }
+
+    // 📎 Archivos incrustados
     $containsObjetosIncrustados = (strpos($trailer, '/EmbeddedFiles') !== false || strpos($trailer, '/FileAttachment') !== false);
     $messages[] = $containsObjetosIncrustados ? "❌ Contiene archivos incrustados." : "✅ No contiene objetos incrustados.";
 
-    $containsJS = (preg_match('/\/(JavaScript|JS)/', $trailer));
+    // 💻 JavaScript embebido
+    $containsJS = (preg_match('/\/(JavaScript|JS)/', $trailer) || preg_match('/\/(JavaScript|JS)/', $root));
     $messages[] = $containsJS ? "❌ Contiene JavaScript." : "✅ No contiene JavaScript.";
 
-    // Verificar anotaciones o comentarios
+    // 🗒️ Anotaciones
     $hasAnnots = shell_exec("mutool show $escapedPath 1 2>&1 | grep '/Annots'");
     $messages[] = $hasAnnots ? "⚠️ El PDF contiene anotaciones o comentarios." : "✅ No contiene anotaciones.";
 
-    // Verificar enlaces externos
+    // 🔗 Enlaces externos
     $links = shell_exec("strings $escapedPath | grep -E 'https?://'");
     $messages[] = $links ? "⚠️ El PDF contiene enlaces externos (URLs)." : "✅ No contiene enlaces externos.";
 
-    // Verificar metadatos ocultos
+    // 🧬 Metadatos
     $metadata = shell_exec("exiftool -s -s -s $escapedPath");
     $messages[] = (strlen(trim($metadata)) > 0) ? "⚠️ El PDF contiene metadatos incrustados." : "✅ No contiene metadatos visibles.";
 
-    // Verificar OCR o texto oculto bajo imagen
+    // 🔤 Texto embebido u OCR
     $textContent = shell_exec("pdftotext $escapedPath - | tr -d '\\n\\r '");
     $messages[] = (strlen($textContent) > 50) ? "⚠️ El PDF contiene texto embebido (posible OCR o capa de texto)." : "✅ El PDF parece ser imagen pura (sin texto embebido).";
 
-    // Verificar páginas en blanco
+    // 📄 Páginas en blanco
     $pageImages = shell_exec("pdftoppm -jpeg -f 1 -l 3 $escapedPath /tmp/page_check 2>/dev/null && identify -format '%[fx:mean]\\n' /tmp/page_check*.jpg");
     $blankPages = 0;
     if ($pageImages) {
         $means = array_filter(explode("\n", trim($pageImages)), 'strlen');
         foreach ($means as $m) {
-            if ((float)$m > 0.95) $blankPages++;
+            if ((float)$m > 0.98) $blankPages++;
         }
         $messages[] = $blankPages > 0 ? "⚠️ Se detectaron {$blankPages} páginas en blanco." : "✅ No se detectaron páginas en blanco.";
         shell_exec("rm -f /tmp/page_check*.jpg");
     }
 
-    // Verificar tamaño y orientación de página
-    if (preg_match('/Page size:\s*([\d.]+)\s*x\s*([\d.]+)/', $pdfinfo, $s)) {
-        $w = floatval($s[1]);
-        $h = floatval($s[2]);
-        if (abs($w - 595) < 5 && abs($h - 842) < 5) {
-            $messages[] = "✅ Tamaño de página estándar A4.";
-        } elseif (abs($w - 612) < 5 && abs($h - 792) < 5) {
-            $messages[] = "✅ Tamaño de página estándar Carta.";
-        } else {
-            $messages[] = "⚠️ Tamaño de página no estándar: {$w}x{$h} pt.";
-        }
-        $orientation = ($w > $h) ? "Horizontal" : "Vertical";
-        $messages[] = "📄 Orientación detectada: {$orientation}.";
-    }
-
-    // Verificar imágenes
+    // 🖼️ Análisis de imágenes
     $pdfimages = shell_exec("pdfimages -list $escapedPath");
     $totalImages = 0;
     $validDPI = true;
@@ -173,9 +182,8 @@ foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
         'resumen' => $messages,
         'detalles' => [
             'tamaño' => round($_FILES['pdfFiles']['size'][$index] / 1024, 2) . " KB",
-            'tamaño_valido' => ($_FILES['pdfFiles']['size'][$index] <= $maxSize) ? "✅ Tamaño adecuado." : "❌ Excede el tamaño máximo.",
             'pdf_valido' => (in_array($mime, ['application/pdf', 'application/x-pdf'])) ? "✅ Es un PDF válido." : "❌ No es un PDF válido.",
-            'sin_contraseña' => (strpos($pdfinfo, 'Encrypted: yes') === false) ? "✅ No tiene contraseña." : "❌ Tiene contraseña.",
+            'sin_contraseña' => preg_match('/Encrypted:\s*yes/i', $pdfinfo) ? "⚠️ Contiene restricciones o contraseña." : "✅ No tiene contraseña.",
             'sin_formularios' => $containsFormularios ? "❌ Contiene formularios." : "✅ No contiene formularios.",
             'sin_objetos_incrustados' => $containsObjetosIncrustados ? "❌ Contiene objetos incrustados." : "✅ No contiene objetos incrustados.",
             'sin_javascript' => $containsJS ? "❌ Contiene JavaScript." : "✅ No contiene JavaScript.",
@@ -194,5 +202,6 @@ function outputAndExit(array $messages) {
     exit;
 }
 ?>
+
 
 
