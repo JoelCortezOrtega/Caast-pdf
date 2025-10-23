@@ -1,11 +1,4 @@
 <?php
-// ✅ Silenciar warnings para evitar que rompan la salida JSON
-error_reporting(E_ALL & ~E_WARNING);
-ini_set('display_errors', 0);
-
-// Definir máximo archivos permitidos (ejemplo, ajusta según tu lógica)
-$maxFiles = 5;
-
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     outputAndExit(["error" => ["⚠️ Método no permitido. Usa POST para subir archivos."]]);
 }
@@ -18,12 +11,6 @@ if (!isset($_FILES['pdfFiles']) || !is_array($_FILES['pdfFiles']['error']) || co
             "💡 Revisa que no estés enviando más de {$maxUploadPHP} archivos, que es el máximo permitido por el servidor PHP."
         ]
     ]);
-}
-
-// Verificar el número de archivos cargados
-$totalFiles = count($_FILES['pdfFiles']['error']);
-if ($totalFiles > $maxFiles) {
-    outputAndExit(["error" => ["❌ El número máximo de archivos permitidos es {$maxFiles}. Has intentado cargar {$totalFiles} archivos."]]);
 }
 
 $results = [];

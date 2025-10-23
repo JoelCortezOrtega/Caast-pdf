@@ -17,8 +17,6 @@ $(document).ready(function () {
   });
 });
 
-
-
 $('#pdfUploadForm').on('submit', function(e) {
     e.preventDefault();
 
@@ -50,8 +48,21 @@ $('#pdfUploadForm').on('submit', function(e) {
             let tableData = [];
 
             $.each(response, function(nombreArchivo, mensajes) {
-                // Lista resumen (mensaje corto)
-                let mensajesUnidos = '<ul>' + mensajes.resumen.map(msg => `<li>${msg}</li>`).join('') + '</ul>';
+                // Filtrar avisos (puedes ajustar esta lógica)
+                    let avisos = mensajes.resumen.filter(msg => {
+                        return msg.includes('⚠️') || /no cumple|error|falla|no /i.test(msg);
+                    });
+
+                    let mensajeColumna = '';
+                    if (avisos.length === 0) {
+                        mensajeColumna = `<span style="background-color:#d4edda; color:#155724; border-radius: 12px; padding: 4px 10px; font-weight: 600; font-size: 13px; display:inline-block;">
+                            &#10003; Cumple
+                        </span>`;
+                    } else {
+                        mensajeColumna = `<span style="background-color:#fff3cd; color:#856404; border-radius: 12px; padding: 4px 10px; font-weight: 600; font-size: 13px; display:inline-block;">
+                            ${avisos.length} aviso(s)
+                        </span>`;
+                    }
 
                 // Guardar detalles en un objeto para usar luego en el modal
                 let detalles = {
@@ -66,10 +77,10 @@ $('#pdfUploadForm').on('submit', function(e) {
                     dpi_imagenes: mensajes.detalles.dpi_imagenes
                 };
 
-                // Creamos el botón con data-detalles (stringificado JSON)
+                // Creamos los botones con data-detalles (stringificado JSON)
                 let botonDetalles = `
                     <button 
-                        class="btn btn-sm btn-info btn-detalle" 
+                        class="btn btn-sm btn-info btn-detalle" title="Detalles"
                         data-detalles='${JSON.stringify(detalles).replace(/'/g, "&apos;")}' 
                         data-nombre='${nombreArchivo}'
                         type="button"
@@ -77,19 +88,18 @@ $('#pdfUploadForm').on('submit', function(e) {
                         <i class="fas fa-info-circle"></i> Detalles
                     </button>
                     <button 
-                        class="btn btn-sm btn-info btn btn-danger" 
-                        data-detalles='${JSON.stringify(detalles).replace(/'/g, "&apos;")}' 
+                        class="btn btn-sm btn-danger btn-eliminar" title="Eliminar"
                         data-nombre='${nombreArchivo}'
                         type="button"
                     >
-                        <i class="fa fa-times"></i> Eliminar registro
+                        <i class="fa fa-times"></i> Eliminar
                     </button>
                 `;
 
                 tableData.push([
                     nombreArchivo,
                     mensajes.detalles.tamaño,
-                    '',
+                    mensajeColumna,
                     botonDetalles
                 ]);
             });
@@ -102,7 +112,7 @@ $('#pdfUploadForm').on('submit', function(e) {
                 columns: [
                     { title: "Archivo" },
                     { title: "Tamaño" },
-                    { title: "Mensaje" },
+                    { title: "Revisión técnica" },
                     { title: "Acciones", orderable: false }
                 ],
                 autoWidth: false,
@@ -155,7 +165,6 @@ $('#pdfUploadForm').on('submit', function(e) {
                             <li><strong>Escala de grises a 8 bits:</strong> ${formatBadge(detalles.imagenes_grayscale)}</li>
                             <li><strong>Resolución 300 DPI:</strong> ${formatBadge(detalles.dpi_imagenes)}</li>
                         </ul>
-                        <p><strong>Errores</strong></p>
                     </div>
                 `;
 
@@ -191,4 +200,5 @@ $('#pdfUploadForm').on('submit', function(e) {
         }
     });
 });
+
 
