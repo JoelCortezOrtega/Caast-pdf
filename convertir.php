@@ -1,7 +1,6 @@
 <?php
 header('Content-Type: application/json');
-
-require_once 'funcion_convertir.php'; // Aquí pondrás tu función convertirPDFparaVUCEM()
+require_once 'funcion_convertir.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(['success' => false, 'mensaje' => 'Método no permitido.']);
@@ -13,30 +12,31 @@ if (empty($_POST['archivo'])) {
     exit;
 }
 
-$nombreArchivo = basename($_POST['archivo']); // Evita rutas maliciosas
-$rutaEntrada = __DIR__ . '/uploads/' . $nombreArchivo; // Cambia 'uploads' si usas otra carpeta
+$nombreArchivo = basename($_POST['archivo']);
+$rutaEntrada = __DIR__ . '/uploads/' . $nombreArchivo;
 $rutaSalida = __DIR__ . '/convertidos/' . pathinfo($nombreArchivo, PATHINFO_FILENAME) . '_vucem.pdf';
 
-// Verifica que el archivo original exista
 if (!file_exists($rutaEntrada)) {
-    echo json_encode(['success' => false, 'mensaje' => 'El archivo no existe en el servidor.']);
+    echo json_encode(['success' => false, 'mensaje' => 'El archivo no existe.']);
     exit;
 }
 
-// Crea carpeta de salida si no existe
 if (!is_dir(dirname($rutaSalida))) {
     mkdir(dirname($rutaSalida), 0777, true);
 }
 
-// Ejecuta la conversión
 $resultado = convertirPDFparaVUCEM($rutaEntrada, $rutaSalida);
 
-// Analiza la respuesta de la función
+// Si la conversión fue exitosa
 if (strpos($resultado, '✅') !== false && file_exists($rutaSalida)) {
+    // Borrar el archivo original
+    if (file_exists($rutaEntrada)) unlink($rutaEntrada);
+
+    // Devuelve solo el nombre del archivo convertido
     echo json_encode([
         'success' => true,
         'mensaje' => $resultado,
-        'url_convertido' => 'convertidos/' . basename($rutaSalida)
+        'archivo_convertido' => basename($rutaSalida)
     ]);
 } else {
     echo json_encode([

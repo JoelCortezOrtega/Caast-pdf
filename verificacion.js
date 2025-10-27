@@ -255,7 +255,6 @@ function obtenerTamañoArchivo(nombre) {
     return "Desconocido";
 }
 
-// 🌀 Acción: convertir PDF a formato VUCEM
 $('#producto_data tbody').off('click', '.btn-convertir').on('click', '.btn-convertir', async function () {
     const nombreArchivo = $(this).data('nombre');
 
@@ -277,27 +276,33 @@ $('#producto_data tbody').off('click', '.btn-convertir').on('click', '.btn-conve
 
         Swal.close();
 
-        if (response.success) {
+        if (response.success && response.archivo_convertido) {
+            // Crear enlace temporal para descargar automáticamente
+            const link = document.createElement('a');
+            link.href = 'descargar.php?archivo=' + encodeURIComponent(response.archivo_convertido);
+            link.download = '';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
             Swal.fire({
                 icon: 'success',
                 title: 'Conversión exitosa',
-                html: `
-                    <p>${response.mensaje}</p>
-                    ${response.url_convertido ? `<a href="${response.url_convertido}" target="_blank" class="btn btn-success">Descargar PDF convertido</a>` : ""}
-                `,
+                html: `<p>${response.mensaje}</p>
+                       <p>El archivo se descargará automáticamente.</p>`,
                 showConfirmButton: true,
                 confirmButtonText: 'Cerrar'
             });
         } else {
             Swal.fire('Error', response.mensaje || 'No se pudo convertir el PDF.', 'error');
         }
-
     } catch (error) {
         Swal.close();
         console.error(error);
         Swal.fire('Error', 'Ocurrió un error al comunicarse con el servidor.', 'error');
     }
 });
+
 
 
 
