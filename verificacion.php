@@ -31,12 +31,12 @@ foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
     $originalName = basename($_FILES['pdfFiles']['name'][$index]);
     $originalName = preg_replace('/[^a-zA-Z0-9_\-.]/', '_', $originalName);
 
-    // Validar nomenclatura de nombre VUCEM (RFC_Tipo_Fecha.pdf)
+/*     // Validar nomenclatura de nombre VUCEM (RFC_Tipo_Fecha.pdf)
     if (!preg_match('/^[A-Z0-9]{12,13}_[A-Za-z]+_\d{8}\.pdf$/', $originalName)) {
         $messages[] = "⚠️ El nombre del archivo no cumple con la nomenclatura esperada (RFC_Tipo_Fecha.pdf).";
     } else {
         $messages[] = "✅ Nombre de archivo con nomenclatura válida.";
-    }
+    } */
 
     // Verificar errores de subida
     if ($_FILES['pdfFiles']['error'][$index] !== UPLOAD_ERR_OK) {
@@ -187,9 +187,12 @@ foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
         $y_dpi = (int)$parts[12];
 
         $totalImages++;
-        if ($x_dpi < 300 || $y_dpi < 300) $validDPI = false;
+        if ($x_dpi == 0 || $y_dpi == 0 || $x_dpi < 300 || $y_dpi < 300) $validDPI = false;
         if ($color === 'gray' && $bpc === 8) $validGray8++;
     }
+
+    // ✅ Cálculo global después del análisis de imágenes
+    $allGray8 = ($totalImages > 0 && $validGray8 === $totalImages);
 
     // Guardar resultados por archivo
     $results[$originalName] = [
@@ -203,7 +206,12 @@ foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
             'sin_javascript' => $containsJS ? "❌ Contiene JavaScript." : "✅ No contiene JavaScript.",
             'imagenes' => $totalImages > 0 ? "✅ Se encontraron imágenes en el PDF." : "⚠️ No se encontraron imágenes.",
             'dpi_imagenes' => ($totalImages === 0) ? "⚠️ No aplica." : ($validDPI ? "✅ Todas las imágenes cumplen con 300 DPI o más." : "❌ Algunas imágenes tienen menos de 300 DPI."),
-            'imagenes_grayscale' => ($totalImages === 0) ? "⚠️ No aplica." : ($validGray8 === $totalImages ? "✅ Todas las imágenes están en escala de grises a 8 bits." : "❌ Solo $validGray8 de $totalImages imágenes están en escala de grises a 8 bits.")
+            'imagenes_grayscale' => ($totalImages === 0)
+                ? "⚠️ No aplica."
+                : ($allGray8
+                    ? "✅ Todas las imágenes están en escala de grises a 8 bits."
+                    : "❌ Solo $validGray8 de $totalImages imágenes están en escala de grises a 8 bits."
+                )
         ]
     ];
 

@@ -125,13 +125,23 @@ function mostrarResultadosEnTabla(response) {
             };
         }
 
-        // 🔹 Filtrar errores y warnings
-        let erroresCriticos = mensajes.resumen ? mensajes.resumen.filter(msg =>
-            /error|falla|no cumple/i.test(msg)
-        ) : [];
-        let warnings = mensajes.resumen ? mensajes.resumen.filter(msg =>
-            /⚠️|advertencia|warning/i.test(msg)
-        ) : [];
+        // 🟠 Revisión de errores a nivel de detalles (más preciso)
+        let detalles = mensajes.detalles || {};
+        let erroresCriticos = [];
+
+        // Recorremos los valores del objeto 'detalles'
+        for (let clave in detalles) {
+            if (typeof detalles[clave] === "string" && /❌|error|falla|no cumple/i.test(detalles[clave])) {
+                erroresCriticos.push(`${clave}: ${detalles[clave]}`);
+            }
+        }
+
+        let warnings = [];
+        for (let clave in detalles) {
+            if (typeof detalles[clave] === "string" && /⚠️|advertencia|warning/i.test(detalles[clave])) {
+                warnings.push(`${clave}: ${detalles[clave]}`);
+            }
+        }
 
         let mensajeColumna = "";
 
