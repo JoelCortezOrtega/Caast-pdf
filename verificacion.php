@@ -72,12 +72,6 @@ foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
 
     $escapedPath = escapeshellarg($uploadedFile);
 
-
-
-
-
-    
-
     // 🛡️ Detección mejorada de contraseña / encriptación
     $pdfinfo = shell_exec("pdfinfo $escapedPath 2>&1");
     if (preg_match('/Encrypted:\s*yes/i', $pdfinfo)) {
@@ -212,6 +206,26 @@ foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
             'imagenes_grayscale' => ($totalImages === 0) ? "⚠️ No aplica." : ($validGray8 === $totalImages ? "✅ Todas las imágenes están en escala de grises a 8 bits." : "❌ Solo $validGray8 de $totalImages imágenes están en escala de grises a 8 bits.")
         ]
     ];
+
+    // ✅ Subir siempre al servidor
+    $uploadDir = __DIR__ . '/uploads/';
+    if (!file_exists($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
+    }
+
+    $destino = $uploadDir . $originalName;
+    if (move_uploaded_file($uploadedFile, $destino)) {
+        $results[$originalName]['resumen'][] = "✅ El archivo ha sido subido al servidor.";
+    } else {
+        $results[$originalName]['resumen'][] = "❌ Hubo un error al subir el archivo al servidor.";
+    }
+
+    // ⚠️ Si hubo errores de validación, agregarlos al resumen para que el usuario los revise
+    foreach ($messages as $msg) {
+        if (strpos($msg, "❌") === 0 || strpos($msg, "⚠️") === 0) {
+            $results[$originalName]['resumen'][] = "⚠️ Revisar: " . $msg;
+        }
+    }
 }
 
 outputAndExit($results);

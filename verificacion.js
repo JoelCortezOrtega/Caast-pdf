@@ -157,7 +157,7 @@ function mostrarResultadosEnTabla(response) {
                 </div>`;
         }
 
-        let botonDetalles = `
+        let botonAcciones = `
             <button 
                 class="btn btn-sm btn-info btn-detalle" title="Detalles"
                 data-detalles='${JSON.stringify(mensajes.detalles).replace(/'/g, "&apos;")}'
@@ -166,13 +166,21 @@ function mostrarResultadosEnTabla(response) {
             >
                 <i class="fas fa-info-circle"></i> Detalles
             </button>
+            <button 
+                class="btn btn-sm btn-secondary btn-convertir" title="Convertir a formato VUCEM"
+                data-nombre='${nombreArchivo}'
+                type="button"
+                style="margin-left:5px;"
+            >
+                <i class="fas fa-sync-alt"></i> Convertir
+            </button>
         `;
 
         tableData.push([
             nombreArchivo,
             mensajes.detalles.tamaño || "Desconocido",
             mensajeColumna,
-            botonDetalles
+            botonAcciones
         ]);
     });
 
@@ -246,6 +254,51 @@ function obtenerTamañoArchivo(nombre) {
     }
     return "Desconocido";
 }
+
+// 🌀 Acción: convertir PDF a formato VUCEM
+$('#producto_data tbody').off('click', '.btn-convertir').on('click', '.btn-convertir', async function () {
+    const nombreArchivo = $(this).data('nombre');
+
+    Swal.fire({
+        title: 'Convirtiendo PDF...',
+        html: `<p>Por favor espera mientras se procesa el archivo:<br><b>${nombreArchivo}</b></p>`,
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        const response = await $.ajax({
+            url: 'convertir.php',
+            type: 'POST',
+            data: { archivo: nombreArchivo },
+            dataType: 'json',
+            timeout: 120000
+        });
+
+        Swal.close();
+
+        if (response.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Conversión exitosa',
+                html: `
+                    <p>${response.mensaje}</p>
+                    ${response.url_convertido ? `<a href="${response.url_convertido}" target="_blank" class="btn btn-success">Descargar PDF convertido</a>` : ""}
+                `,
+                showConfirmButton: true,
+                confirmButtonText: 'Cerrar'
+            });
+        } else {
+            Swal.fire('Error', response.mensaje || 'No se pudo convertir el PDF.', 'error');
+        }
+
+    } catch (error) {
+        Swal.close();
+        console.error(error);
+        Swal.fire('Error', 'Ocurrió un error al comunicarse con el servidor.', 'error');
+    }
+});
+
 
 
 
