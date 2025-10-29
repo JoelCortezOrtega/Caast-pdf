@@ -106,23 +106,43 @@ function mostrarResultadosEnTabla(response) {
 
     let tableData = [];
 
-    $.each(response, function(nombreArchivo, mensajes) {
+    $.each(response, function(nombreArchivo, mensajes) 
+    {
         if (!mensajes) {
             console.warn("Respuesta inesperada para:", nombreArchivo, mensajes);
             return;
         }
 
+        // ⚠️ Detectar errores directos del backend (por ejemplo, tamaño excedido)
+        const resumen = mensajes.resumen ? mensajes.resumen.join(" ") : "";
+        const tieneErrorResumen = /❌|error|excede|falla|inválido/i.test(resumen);
+
         if (!mensajes.detalles) {
-            mensajes.detalles = {
-                tamaño: obtenerTamañoArchivo(nombreArchivo),
-                pdf_valido: "No verificado",
-                sin_contraseña: "-",
-                sin_javascript: "-",
-                sin_formularios: "-",
-                sin_objetos_incrustados: "-",
-                imagenes_grayscale: "-",
-                dpi_imagenes: "-"
-            };
+            // Si hay error en resumen → marcar como fallo global
+            if (tieneErrorResumen) {
+                mensajes.detalles = {
+                    tamaño: "❌ Excede el límite permitido o presenta errores.",
+                    pdf_valido: "❌ No evaluado.",
+                    sin_contraseña: "-",
+                    sin_javascript: "-",
+                    sin_formularios: "-",
+                    sin_objetos_incrustados: "-",
+                    imagenes_grayscale: "-",
+                    dpi_imagenes: "-"
+                };
+            } else {
+                // Si no hay error → solo rellenar valores genéricos
+                mensajes.detalles = {
+                    tamaño: obtenerTamañoArchivo(nombreArchivo),
+                    pdf_valido: "No verificado",
+                    sin_contraseña: "-",
+                    sin_javascript: "-",
+                    sin_formularios: "-",
+                    sin_objetos_incrustados: "-",
+                    imagenes_grayscale: "-",
+                    dpi_imagenes: "-"
+                };
+            }
         }
 
         // 🟠 Revisión de errores a nivel de detalles (más preciso)
@@ -174,7 +194,7 @@ function mostrarResultadosEnTabla(response) {
                 data-nombre='${nombreArchivo}'
                 type="button"
             >
-                <i class="fas fa-info-circle"></i> Detalles
+                <i class="fas fa-info-circle"></i>
             </button>
             <button 
                 class="btn btn-sm btn-secondary btn-convertir" title="Convertir a formato VUCEM"
@@ -182,7 +202,7 @@ function mostrarResultadosEnTabla(response) {
                 type="button"
                 style="margin-left:5px;"
             >
-                <i class="fas fa-sync-alt"></i> Convertir
+                <i class="fas fa-sync-alt"></i>
             </button>
         `;
 

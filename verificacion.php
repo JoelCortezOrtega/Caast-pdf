@@ -31,13 +31,6 @@ foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
     $originalName = basename($_FILES['pdfFiles']['name'][$index]);
     $originalName = preg_replace('/[^a-zA-Z0-9_\-.]/', '_', $originalName);
 
-/*     // Validar nomenclatura de nombre VUCEM (RFC_Tipo_Fecha.pdf)
-    if (!preg_match('/^[A-Z0-9]{12,13}_[A-Za-z]+_\d{8}\.pdf$/', $originalName)) {
-        $messages[] = "⚠️ El nombre del archivo no cumple con la nomenclatura esperada (RFC_Tipo_Fecha.pdf).";
-    } else {
-        $messages[] = "✅ Nombre de archivo con nomenclatura válida.";
-    } */
-
     // Verificar errores de subida
     if ($_FILES['pdfFiles']['error'][$index] !== UPLOAD_ERR_OK) {
         $messages[] = "❌ No se pudo subir el archivo: {$originalName}. Error: {$_FILES['pdfFiles']['error'][$index]}";
@@ -170,7 +163,7 @@ foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
     if (!$pdfimages) {
         $messages[] = "❌ No se pudo analizar imágenes del PDF.";
         $results[$originalName] = ['resumen' => $messages];
-        continue;
+        //continue;
     }
 
     $lines = explode("\n", $pdfimages);
