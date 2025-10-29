@@ -163,7 +163,7 @@ foreach ($_FILES['pdfFiles']['tmp_name'] as $index => $uploadedFile) {
     if (!$pdfimages) {
         $messages[] = "❌ No se pudo analizar imágenes del PDF.";
         $results[$originalName] = ['resumen' => $messages];
-        //continue;
+        continue;
     }
 
     $lines = explode("\n", $pdfimages);

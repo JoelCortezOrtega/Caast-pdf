@@ -116,11 +116,31 @@ function mostrarResultadosEnTabla(response) {
         // ⚠️ Detectar errores directos del backend (por ejemplo, tamaño excedido)
         const resumen = mensajes.resumen ? mensajes.resumen.join(" ") : "";
         const tieneErrorResumen = /❌|error|excede|falla|inválido/i.test(resumen);
+        const falloImagenes = resumen.includes("No se pudo analizar imágenes del PDF");
 
-        if (!mensajes.detalles) {
+        if (!mensajes.detalles) 
+        {
             // Si hay error en resumen → marcar como fallo global
-            if (tieneErrorResumen) {
-                mensajes.detalles = {
+            if (tieneErrorResumen) 
+            {
+               if(falloImagenes)
+                {
+                    mensajes.detalles =
+                    {
+                        tamaño: "",
+                        pdf_valido: "❌ No evaluado.",
+                        sin_contraseña: "-",
+                        sin_javascript: "-",
+                        sin_formularios: "-",
+                        sin_objetos_incrustados: "-",
+                        imagenes_grayscale: "-",
+                        dpi_imagenes: "-",
+                        imagenes: falloImagenes ? "❌ No se pudo analizar imágenes del PDF." : "-"
+                    };
+                }
+                else
+                {
+                    mensajes.detalles = {
                     tamaño: "❌ Excede el límite permitido o presenta errores.",
                     pdf_valido: "❌ No evaluado.",
                     sin_contraseña: "-",
@@ -130,7 +150,10 @@ function mostrarResultadosEnTabla(response) {
                     imagenes_grayscale: "-",
                     dpi_imagenes: "-"
                 };
-            } else {
+                }
+            } 
+            else 
+            {
                 // Si no hay error → solo rellenar valores genéricos
                 mensajes.detalles = {
                     tamaño: obtenerTamañoArchivo(nombreArchivo),
